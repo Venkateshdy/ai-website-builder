@@ -26,7 +26,7 @@ client = Groq(
 )
 
 # Root route (test)
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def home():
     return {"message": "AI Website Builder Running 🚀"}
 
