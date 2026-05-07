@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Website Builder</title>
+</head>
+
+<body style="font-family: Arial; text-align: center;">
+
+    <h1>AI Website Generator 🚀</h1>
+
+    <input id="prompt" placeholder="Describe your website"
+           style="width: 300px; padding: 10px;" />
+
+    <br><br>
+
+    <button onclick="generate()" style="padding: 10px 20px;">
+        Generate Website
+    </button>
+
+    <h2>Preview 👇</h2>
+
+    <iframe id="preview" width="80%" height="500px"></iframe>
+
+    <script>
+        async function generate() {
+            const text = document.getElementById("prompt").value;
+
+            await fetch("http://127.0.0.1:8000/generate", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ text })
+            });
+
+            document.getElementById("preview").src =
+                "http://127.0.0.1:8000/generated_sites/index.html?" + new Date().getTime();
+        }
+    </script>
+
+</body>
+</html>
