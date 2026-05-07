@@ -1,14 +1,13 @@
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 import os
+from groq import Groq
 
-from agent import run_agents
-
+# Initialize FastAPI
 app = FastAPI()
 
-# ✅ Enable CORS (frontend can call backend)
+# Enable CORS (important for frontend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,49 +16,46 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Absolute path setup
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-GENERATED_DIR = os.path.join(BASE_DIR, "generated_sites")
-
-# ✅ Ensure folder exists
-os.makedirs(GENERATED_DIR, exist_ok=True)
-
-# ✅ Mount static files (VERY IMPORTANT)
-app.mount(
-    "/generated_sites",
-    StaticFiles(directory=GENERATED_DIR),
-    name="generated_sites"
-)
-
 # Request model
-class Prompt(BaseModel):
+class PromptRequest(BaseModel):
     text: str
 
-# Root check (optional but useful)
+# Initialize Groq client
+client = Groq(
+    api_key=os.getenv("GROQ_API_KEY")  # MUST be set in Render
+)
+
+# Root route (test)
 @app.get("/")
 def home():
     return {"message": "AI Website Builder Running 🚀"}
 
-# Generate API
+# Generate website route
 @app.post("/generate")
-def generate(prompt: Prompt):
+def generate(request: PromptRequest):
     try:
-        print("Received prompt:", prompt.text)
+        prompt = f"""
+        Create a complete HTML website with inline CSS and JavaScript.
+        User request: {request.text}
 
-        code, _ = run_agents(prompt.text)
+        Requirements:
+        - Modern UI
+        - Responsive design
+        - Clean layout
+        - Include headings, sections, styling
+        """
 
-        file_path = os.path.join(GENERATED_DIR, "index.html")
+        response = client.chat.completions.create(
+            model="llama3-70b-8192",  # working Groq model
+            messages=[
+                {"role": "system", "content": "You are a creative web developer."},
+                {"role": "user", "content": prompt}
+            ],
+        )
 
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(code)
+        html_output = response.choices[0].message.content
 
-        print("Saved file at:", file_path)
-        print("Code preview:", code[:200])
-
-        return {
-            "status": "success",
-            "file": "/generated_sites/index.html"
-        }
+        return {"html": html_output}
 
     except Exception as e:
         return {"error": str(e)}
